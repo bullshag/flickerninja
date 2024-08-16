@@ -22,7 +22,7 @@ public class CharacterMovement : MonoBehaviour
     public int blinkStage;
     public GameObject smokeCloud;
     public playerData playerData;
-
+    public GameObject swordHitBox;
     void Start()
     {
         playerData = GetComponent<playerData>();
@@ -37,8 +37,8 @@ public class CharacterMovement : MonoBehaviour
 
     void Update()
     {
-         rightStickHorizontal = Input.GetAxis("DodgeHorizontal");
-         rightStickVertical = Input.GetAxis("DodgeVertical");
+        rightStickHorizontal = Input.GetAxis("DodgeHorizontal");
+        rightStickVertical = Input.GetAxis("DodgeVertical");
         groundAttack();
         MoveCharacter();
         Jump();
@@ -48,9 +48,9 @@ public class CharacterMovement : MonoBehaviour
             playerData.stCurrent -= 25;
             animator.Play("blinkBegin");
             GameObject tempSmokeCloud = smokeCloud;
-            Instantiate(tempSmokeCloud,gameObject.transform.position, Quaternion.identity);
+            Instantiate(tempSmokeCloud, gameObject.transform.position, Quaternion.identity);
             Dodge();
-            Destroy(tempSmokeCloud,1f);
+            Destroy(tempSmokeCloud, 1f);
             Debug.Log("Dodged!");
 
 
@@ -69,13 +69,13 @@ public class CharacterMovement : MonoBehaviour
 
     private void groundAttack()
     {
-        
+
         switch (isGrounded)
         {
             case true:
                 if (Input.GetButtonDown("attack") && playerData.stCurrent - 15 >= 0)
                 {
-
+                    StartCoroutine(toggleSwordHitbox());
                     playerData.stCurrent -= 15;
                     if (rb2D.velocity.x == 0f)
                     {
@@ -89,104 +89,113 @@ public class CharacterMovement : MonoBehaviour
                     }
                 }
                 break;
-                case false:
+            case false:
                 if (Input.GetButtonDown("attack") && playerData.stCurrent - 15 >= 0)
                 {
+                    StartCoroutine(toggleSwordHitbox());
                     playerData.stCurrent -= 15;
                     animator.Play("jumpSlashAnim");
                 }
                 break;
         }
-        
+
+    }
+
+    IEnumerator toggleSwordHitbox()
+    {
+        // Enable the GameObject
+        swordHitBox.SetActive(true);
+
+        // Wait for the specified duration
+        yield return new WaitForSeconds(1f);
+
+        // Disable the GameObject
+        swordHitBox.SetActive(false);
     }
     void MoveCharacter()
-    {float moveInput = Input.GetAxis("Horizontal");
-        if (isGrounded && moveInput != 0f) {
-        rb2D.velocity = new Vector2(moveInput * moveSpeed, rb2D.velocity.y);
-
-        Debug.Log($"Velocity after movement: {rb2D.velocity}"); }
-        
-    }
-
-    void Jump()
     {
-        if (Input.GetButtonDown("Jump") && isGrounded)
+        float moveInput = Input.GetAxis("Horizontal");
+        if (isGrounded && moveInput != 0f)
         {
-            float moveInput = Input.GetAxis("Horizontal");
-            rb2D.velocity = new Vector2(moveInput * moveSpeed, jumpForce);
-            Debug.Log("Jumped!");
+            rb2D.velocity = new Vector2(moveInput * moveSpeed, rb2D.velocity.y);
+
         }
     }
-
-
-
-
-
-
-
-
-    void Dodge()
-    {
-        // Fetch the dodge direction using raw input values
-        float dodgeHorizontal = Input.GetAxisRaw("DodgeHorizontal");
-        float dodgeVertical = Input.GetAxisRaw("DodgeVertical");
-        Debug.Log($"Dodge Input: Horizontal = {rightStickHorizontal}, Vertical = {rightStickVertical}");
-
-        Vector2 dodgeDirection = new Vector2(rightStickHorizontal, rightStickVertical).normalized;
-
-        // Ensure that the dodge direction is valid
-        if (dodgeDirection != Vector2.zero)
+        void Jump()
         {
-            Debug.Log("Vector within range");
-            RaycastHit2D hit = Physics2D.Raycast(transform.position, dodgeDirection, dodgeDistance, wallLayer);
-
-            if (hit.collider != null)
+            if (Input.GetButtonDown("Jump") && isGrounded)
             {
-                Debug.Log("Hit something!");
-                transform.position = hit.point;
+                float moveInput = Input.GetAxis("Horizontal");
+                rb2D.velocity = new Vector2(moveInput * moveSpeed, jumpForce);
             }
-            else
-            {
-                transform.position += (Vector3)dodgeDirection * dodgeDistance;
-                Debug.Log("Hit nothing!");
-            }
-
-            // Flip the character to face the dodge direction
-            if (dodgeDirection.x != 0)
-            {
-                // Flip the character horizontally based on dodge direction
-                Vector3 scale = transform.localScale;
-                scale.x = Mathf.Sign(dodgeDirection.x) * Mathf.Abs(scale.x);
-                transform.localScale = scale;
-            }
-
-            Debug.Log("applying dash!");
-            rb2D.velocity = new Vector2(dodgeDirection.x * moveSpeed * dodgeInertiaMultiplier, rb2D.velocity.y);
-
-            canDodge = false;
-            animator.SetBool("CanDodge", canDodge);
         }
-    }
 
 
-    void OnCollisionEnter2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
+
+
+
+
+
+
+        void Dodge()
         {
-            isGrounded = true;
-            canDodge = true; // Allow dodging again when grounded
-            blinkStage = 0;
+            // Fetch the dodge direction using raw input values
+            float dodgeHorizontal = Input.GetAxisRaw("DodgeHorizontal");
+            float dodgeVertical = Input.GetAxisRaw("DodgeVertical");
 
-            animator.SetBool("CanDodge", canDodge);
-            animator.SetInteger("blinkStage", blinkStage);
+            Vector2 dodgeDirection = new Vector2(rightStickHorizontal, rightStickVertical).normalized;
+
+            // Ensure that the dodge direction is valid
+            if (dodgeDirection != Vector2.zero)
+            {
+                RaycastHit2D hit = Physics2D.Raycast(transform.position, dodgeDirection, dodgeDistance, wallLayer);
+
+                if (hit.collider != null)
+                {
+                    transform.position = hit.point;
+                }
+                else
+                {
+                    transform.position += (Vector3)dodgeDirection * dodgeDistance;
+                }
+
+                // Flip the character to face the dodge direction
+                if (dodgeDirection.x != 0)
+                {
+                    // Flip the character horizontally based on dodge direction
+                    Vector3 scale = transform.localScale;
+                    scale.x = Mathf.Sign(dodgeDirection.x) * Mathf.Abs(scale.x);
+                    transform.localScale = scale;
+                }
+
+                rb2D.velocity = new Vector2(dodgeDirection.x * moveSpeed * dodgeInertiaMultiplier, rb2D.velocity.y);
+
+                canDodge = false;
+                animator.SetBool("CanDodge", canDodge);
+            }
         }
-    }
 
-    void OnCollisionExit2D(Collision2D collision)
-    {
-        if (collision.gameObject.CompareTag("Ground"))
+
+        void OnCollisionEnter2D(Collision2D collision)
         {
-            isGrounded = false;
+            if (collision.gameObject.CompareTag("Ground"))
+            {
+                isGrounded = true;
+                canDodge = true; // Allow dodging again when grounded
+                blinkStage = 0;
+
+                animator.SetBool("CanDodge", canDodge);
+                animator.SetInteger("blinkStage", blinkStage);
+            }
+        }
+
+        void OnCollisionExit2D(Collision2D collision)
+        {
+            if (collision.gameObject.CompareTag("Ground"))
+            {
+                isGrounded = false;
+            }
         }
     }
-}
+
+
